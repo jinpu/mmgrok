@@ -169,7 +169,7 @@ CODESTARTnewActInst
                         continue;
                 }
 		else{
-	         	dbgprintf("mmgrok: program error, non-handled "
+	         	DBGPRINTF("mmgrok: program error, non-handled "
                    	"param '%s'\n", actpblk.descr[i].name);
 		}
 	}
@@ -193,7 +193,7 @@ static inline grok_t *CreateGrok()
 {
     grok_t  *grok = grok_new();
     if(grok == NULL){
-        dbgprintf("mmgrok: create a grok faile!");
+        DBGPRINTF("mmgrok: create a grok faile!");
         exit(1);
     }
     grok_init(grok);
@@ -222,8 +222,7 @@ msg_to_json(GList *list,instanceData *pData)
         sprintf(key,"%.*s",((result_t *)it->data)->key_len,((result_t *)it->data)->key);
 	
 	char  *value = (char *)malloc(sizeof(char *)*((result_t *)it->data)->value_len);
-        sprintf(value,"%.*s", ((result_t*)it->data)->value_len,((result_t*)it->data)->value);
-	
+        sprintf(value,"%.*s", ((result_t*)it->data)->value_len,((result_t*)it->data)->value);	
 	jval = json_object_new_string(value);
 	json_object_object_add(json,key,jval);
 	free(key);
@@ -322,14 +321,14 @@ MotifyLine(char *line,grok_t *grok,instanceData *pData)
     int compile = grok_compile(grok,pData->pszMatch);
     if(compile!=GROK_OK)
     {
-        dbgprintf("mmgrok: grok_compile faile!exit code: %d\n",compile);
+        DBGPRINTF("mmgrok: grok_compile faile!exit code: %d\n",compile);
 	ABORT_FINALIZE(RS_RET_ERR);
     }
     int exe = grok_exec(grok,line,&gm);
     
     if(exe!=GROK_OK)
     {
-        dbgprintf("mmgrok: grok_exec faile!exit code: %d\n",exe);
+        DBGPRINTF("mmgrok: grok_exec faile!exit code: %d\n",exe);
 	ABORT_FINALIZE(RS_RET_ERR);
     }
     parse_result_store(gm,pData); 
