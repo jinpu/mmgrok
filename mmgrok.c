@@ -200,35 +200,41 @@ static inline grok_t *CreateGrok()
     return grok;
 }
 
+/* the parseing is complate message into json */
 static rsRetVal 
 msg_to_json(GList *list,instanceData *pData)
 {
     GList *it= list;
-    char  str[1024] ;
-    char  ptr[1024];
 
-    struct json_object *m_json;
+    struct json_object *json;
     struct json_object *jval;
     
     DEFiRet;
     
-    m_json = json_object_new_object();
-    if(m_json == NULL)
+    json = json_object_new_object();
+    if(json == NULL)
     {
             ABORT_FINALIZE(RS_RET_ERR);
     }
     for(;it;it= it->next)
     {
-        sprintf(str,"%.*s",((result_t *)it->data)->key_len,((result_t *)it->data)->key);
-        sprintf(ptr,"%.*s", ((result_t*)it->data)->value_len,((result_t*)it->data)->value);
-	jval = json_object_new_string(ptr);
-	json_object_object_add(m_json,str,jval);
+        char  *key = (char *)malloc(sizeof(char *)*((result_t *)it->data)->key_len);
+        sprintf(key,"%.*s",((result_t *)it->data)->key_len,((result_t *)it->data)->key);
+	
+	char  *value = (char *)malloc(sizeof(char *)*((result_t *)it->data)->value_len);
+        sprintf(value,"%.*s", ((result_t*)it->data)->value_len,((result_t*)it->data)->value);
+	
+	jval = json_object_new_string(value);
+	json_object_object_add(json,key,jval);
+	free(key);
+	free(value);
     }
-    msgAddJSON(pData->pmsg,(uchar*)pData->pszTarget,m_json,0,0);
+    msgAddJSON(pData->pmsg,(uchar*)pData->pszTarget,json,0,0);
 finalize_it:
     RETiRet;
 }
 
+/* store parse result ,use list in glib*/
 static rsRetVal 
 parse_result_store(const grok_match_t gm,instanceData *pData)
 {
@@ -242,11 +248,13 @@ parse_result_store(const grok_match_t gm,instanceData *pData)
         char *type;
         DEFiRet;
         	
-        grok_match_walk_init(&gm);
+        grok_match_walk_init(&gm); //grok API
         
         while(grok_match_walk_next(&gm,&pname,&pname_len,&pdata,&pdata_len) == 0)
         {
+            /* parse key and value type from patterns */
             key = strchr(pname,':');
+	    
             if(key!=NULL)
             {
                 int key_len;
@@ -264,13 +272,13 @@ parse_result_store(const grok_match_t gm,instanceData *pData)
                     sprintf(type,"%.*s",type_len,type);
                 }
                 else{type = "null";}
-                
+                /* store parse result into list */
                 result->key = key;
                 result->key_len = key_len;
                 result->value = pdata;
                 result->value_len = pdata_len;
                 result->type = type;
-                
+                /* the value of merger the same key*/
                 GList *it = re_list;
                 while(it)
                 {
@@ -304,6 +312,7 @@ parse_result_store(const grok_match_t gm,instanceData *pData)
 	RETiRet;
 }
 
+/* motify message for per line */
 static rsRetVal
 MotifyLine(char *line,grok_t *grok,instanceData *pData)
 {
@@ -328,6 +337,7 @@ finalize_it:
     RETiRet;
 }
 
+/* motify rsyslog messages */
 static rsRetVal
 MotifyMessage(instanceData *pData)
 {
@@ -364,8 +374,8 @@ CODESTARTdoAction
                 DBGPRINTF("mmgrok:  not msg for mmgrok!");
                 ABORT_FINALIZE(RS_RET_NO_CEE_MSG);
 	}
-        pData->pszSource = (char *)buf;
-        CHKiRet(MotifyMessage(pData));
+	pData->pszSource = (char *)buf;
+	CHKiRet(MotifyMessage(pData));
 
 finalize_it:
 ENDdoAction
